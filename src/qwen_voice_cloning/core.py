@@ -12,6 +12,9 @@ import torch
 import whisper
 from qwen_tts import Qwen3TTSModel
 
+import torch
+torch.set_num_threads(2)
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -83,34 +86,18 @@ class VoiceCloner:
         attn_implementation: str = "sdpa",
         whisper_model: str = "base",
     ) -> None:
-        """Initialize the Web UI with Qwen TTS model.
-
-        Args:
-            model_name: HuggingFace model identifier
-            device: Device to use (cuda:0, mps, cpu, or None for auto-detect)
-            dtype: Data type for model weights (or None for auto-detect based on device)
-            attn_implementation: Attention implementation
-            whisper_model: Whisper model size for transcription
-
-        """
-        # Auto-detect device if not specified
-        if device is None:
-            device = get_default_device()
-
-        # Auto-detect dtype if not specified
-        if dtype is None:
-            dtype = get_default_dtype(device)
-
-        self.device = device
-        self.dtype = dtype
-
-        logger.info("Initializing model on device: %s with dtype: %s", device, dtype)
+        """Initialize the Web UI with Qwen TTS model."""
+        
+        self.device = "cpu"
+        self.dtype = torch.float32
 
         self.model = Qwen3TTSModel.from_pretrained(
             model_name,
-            device_map=device,
-            dtype=dtype,
+            device_map="auto",
+            dtype=self.dtype,
             attn_implementation=attn_implementation,
+            low_cpu_mem_usage=True,
+            offload_folder="offload_model_weights"
         )
         self.whisper_model = whisper.load_model(whisper_model)
 
